@@ -1,22 +1,39 @@
-import { Component } from "react";
-import { nanoid } from "nanoid";
+import { Component } from 'react';
+import { nanoid } from 'nanoid';
 
-import { Section, ContactForm, Filter, ContactList } from "./components";
-import { handleInputChange } from "./utils";
+import { Section, ContactForm, Filter, ContactList } from './components';
+import {
+  handleInputChange,
+  saveToStorage,
+  loadFromStorage,
+  DATA_TO_LOAD,
+  DATA_TO_SAVE,
+} from './utils';
 
-import { Wrapper, PageHeader } from "./App.styled";
+import { Wrapper, PageHeader } from './App.styled';
 
 export default class App extends Component {
   state = {
-    contacts: [
-      { id: "id-1", name: "Rosie Simpson", number: "459-12-56" },
-      { id: "id-2", name: "Hermione Kline", number: "443-89-12" },
-      { id: "id-3", name: "Eden Clements", number: "645-17-79" },
-      { id: "id-4", name: "Annie Copeland", number: "227-91-26" },
-    ],
-    
-    filter: "",
+    contacts: [],
+    filter: '',
   };
+
+  componentDidMount() {
+    this.setState(() => ({
+      [DATA_TO_LOAD]: [...loadFromStorage(DATA_TO_LOAD)],
+    }));
+  }
+
+  componentDidUpdate(_, prevState) {
+    const { state, filterContacts, claenFilter } = this;
+
+    state[DATA_TO_SAVE] !== prevState[DATA_TO_SAVE] &&
+      saveToStorage(DATA_TO_SAVE, state[DATA_TO_SAVE]);
+
+    if (prevState.filter && filterContacts().length === 0) {
+      claenFilter();
+    }
+  }
 
   handleFilterInputChange = handleInputChange.bind(this);
 
@@ -30,28 +47,32 @@ export default class App extends Component {
 
     this.checkDuplicatedContacts(name)
       ? alert(`${name} is already in contacts`)
-      : this.setState((prevState) => ({
-          contacts: [...prevState.contacts, newContact],
+      : this.setState(prevState => ({
+          contacts: [newContact, ...prevState.contacts],
         }));
   };
 
   filterContacts = () => {
     const { contacts, filter } = this.state;
-
-    return contacts.filter((contact) =>
-      contact.name.toLowerCase().includes(filter.toLowerCase())
+    const filteredContacts = contacts.filter(contact =>
+      contact.name.toLowerCase().includes(filter.toLowerCase()),
     );
+    return filteredContacts;
   };
 
-  deleteContact = (id) => {
-    this.setState((prevState) => ({
-      contacts: prevState.contacts.filter((contact) => contact.id !== id),
+  claenFilter = () => {
+    this.setState({ filter: '' });
+  };
+
+  deleteContact = id => {
+    this.setState(prevState => ({
+      contacts: prevState.contacts.filter(contact => contact.id !== id),
     }));
   };
 
-  checkDuplicatedContacts = (validatedName) =>
+  checkDuplicatedContacts = validatedName =>
     this.state.contacts.find(
-      (contact) => contact.name.toLowerCase() === validatedName.toLowerCase()
+      contact => contact.name.toLowerCase() === validatedName.toLowerCase(),
     );
 
   render() {
@@ -67,7 +88,7 @@ export default class App extends Component {
       <Wrapper>
         <PageHeader>Phonebook</PageHeader>
         <ContactForm onSubmit={addContact} />
-        <Section header={"Contacts"}>
+        <Section header="Contacts">
           <Filter value={filter} onChange={handleFilterInputChange}>
             Find contacts by name
           </Filter>
